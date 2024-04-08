@@ -3,7 +3,6 @@ import pandas as pd
 from random import sample
 import numpy as np 
 
-
 def crossed_above(df, column_a, column_b):
     """
     Create a column indicating where 'column_a' crossed above 'column_b', returning boolean values.
@@ -129,3 +128,30 @@ def stack_signals(df, total_signals):
         result_df[new_col_name] = result_column
 
     return result_df
+
+
+
+
+def generate_cross_conditions(df, threshold_cols1, threshold_cols2):
+    conditions = {}
+    seen_pairs = set()  # To keep track of seen combinations to ensure uniqueness
+
+    for th_col1, th_col2 in product(threshold_cols1, threshold_cols2):
+        # Ensure we're not comparing a column to itself and that each pair is unique
+        if th_col1 != th_col2 and (th_col1, th_col2) not in seen_pairs:
+            seen_pairs.add((th_col1, th_col2))  # Mark this pair as seen
+
+            # Crossed above condition
+            # Column 1 crosses above Column 2 if Column 1 was below or equal to Column 2 at row i-1, and Column 1 is above Column 2 at row i
+            crossed_above_condition_name = f"{th_col1}_crossed_above_{th_col2}"
+            conditions[crossed_above_condition_name] = ((df[th_col1].shift(1) <= df[th_col2].shift(1)) & (df[th_col1] > df[th_col2]))
+
+            # Crossed below condition
+            # Column 1 crosses below Column 2 if Column 1 was above or equal to Column 2 at row i-1, and Column 1 is below Column 2 at row i
+            crossed_below_condition_name = f"{th_col1}_crossed_below_{th_col2}"
+            conditions[crossed_below_condition_name] = ((df[th_col1].shift(1) >= df[th_col2].shift(1)) & (df[th_col1] < df[th_col2]))
+
+
+    # Return the modified DataFrame and the dictionary of conditions
+    return  pd.concat(conditions,axis=1)
+
